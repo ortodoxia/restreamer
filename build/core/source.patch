@@ -1,0 +1,103 @@
+diff --git a/app/api/api.go b/app/api/api.go
+index cfc6d895..b00b1066 100644
+--- a/app/api/api.go
++++ b/app/api/api.go
+@@ -245,11 +245,11 @@ func (a *api) Reload() error {
+ 			"description": v.Description,
+ 			"override":    v.Merged,
+ 		})
+-		configlogger.Debug().Log(message)
++		configlogger.Debug().Log("%s", message)
+ 
+ 		switch level {
+ 		case "warn":
+-			configlogger.Warn().Log(message)
++			configlogger.Warn().Log("%s", message)
+ 		case "error":
+ 			configlogger.Error().WithField("error", message).Log("")
+ 		default:
+diff --git a/app/ffmigrate/main.go b/app/ffmigrate/main.go
+index 5e95ae2e..86cef688 100644
+--- a/app/ffmigrate/main.go
++++ b/app/ffmigrate/main.go
+@@ -61,7 +61,7 @@ func doMigration(logger log.Logger, fs fs.Filesystem, configstore cfgstore.Store
+ 					"value":       v.Value,
+ 					"env":         v.EnvName,
+ 					"description": v.Description,
+-				}).Log(message)
++				}).Log("%s", message)
+ 
+ 				messages = append(messages, v.Name+": "+message)
+ 			}
+diff --git a/app/import/main.go b/app/import/main.go
+index 2d641caf..1e0a3087 100644
+--- a/app/import/main.go
++++ b/app/import/main.go
+@@ -58,7 +58,7 @@ func doImport(logger log.Logger, fs fs.Filesystem, configstore cfgstore.Store) e
+ 					"value":       v.Value,
+ 					"env":         v.EnvName,
+ 					"description": v.Description,
+-				}).Log(message)
++				}).Log("%s", message)
+ 
+ 				messages = append(messages, v.Name+": "+message)
+ 			}
+diff --git a/http/jwt/jwt.go b/http/jwt/jwt.go
+index 141b52b9..bd4569be 100644
+--- a/http/jwt/jwt.go
++++ b/http/jwt/jwt.go
+@@ -12,9 +12,8 @@ import (
+ 
+ 	jwtgo "github.com/golang-jwt/jwt/v5"
+ 	"github.com/google/uuid"
+-	echojwt "github.com/labstack/echo-jwt"
++	echojwt "github.com/labstack/echo-jwt/v4"
+ 	"github.com/labstack/echo/v4"
+-	"github.com/labstack/echo/v4/middleware"
+ )
+ 
+ // The Config type holds information that is required to create a new JWT provider
+@@ -87,7 +86,7 @@ func New(config Config) (JWT, error) {
+ 
+ 	j.accessConfig = echojwt.Config{
+ 		Skipper:        skipperFunc,
+-		SigningMethod:  middleware.AlgorithmHS256,
++		SigningMethod:  jwtgo.SigningMethodHS256.Alg(),
+ 		ContextKey:     "user",
+ 		TokenLookup:    "header:Authorization:Bearer ",
+ 		ErrorHandler:   j.ErrorHandler,
+@@ -96,7 +95,7 @@ func New(config Config) (JWT, error) {
+ 
+ 	j.refreshConfig = echojwt.Config{
+ 		Skipper:        skipperFunc,
+-		SigningMethod:  middleware.AlgorithmHS256,
++		SigningMethod:  jwtgo.SigningMethodHS256.Alg(),
+ 		ContextKey:     "user",
+ 		TokenLookup:    "header:Authorization:Bearer ",
+ 		ErrorHandler:   j.ErrorHandler,
+diff --git a/rtmp/rtmp.go b/rtmp/rtmp.go
+index bdd24b5f..ce2eaef6 100644
+--- a/rtmp/rtmp.go
++++ b/rtmp/rtmp.go
+@@ -332,7 +332,7 @@ func (s *server) log(level log.Level, who, action, path, message string, client
+ 		"action": action,
+ 		"path":   path,
+ 		"client": client.String(),
+-	}).Log(message)
++	}).Log("%s", message)
+ }
+ 
+ // getToken returns the path and the token found in the URL. If the token
+diff --git a/srt/srt.go b/srt/srt.go
+index 81fdb2a4..844f033e 100644
+--- a/srt/srt.go
++++ b/srt/srt.go
+@@ -360,7 +360,7 @@ func (s *server) log(handler, action, resource, message string, client net.Addr)
+ 		"status":   action,
+ 		"resource": resource,
+ 		"client":   client.String(),
+-	}).Log(message)
++	}).Log("%s", message)
+ }
+ 
+ type streamInfo struct {

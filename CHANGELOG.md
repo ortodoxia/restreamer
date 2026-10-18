@@ -1,5 +1,15 @@
 # Restreamer
 
+## Unreleased — ortodoxia fork
+
+- Build Core and UI from pinned source with patched Go/npm dependency locks instead of copying outdated upstream binaries.
+- Replace deprecated Create React App/Babel 6 tooling with Vite on Node 24; remove unused MUI Lab/Base and translation CLI dependencies.
+- Rebuild FFmpeg 6.1.6 with datarhei progress/HLS patches on Alpine 3.23; install updateable codec libraries, VAAPI drivers, and NVENC/CUVID headers.
+- Exclude nonredistributable FDK-AAC; native AAC remains available. Legacy Raspberry Pi MMAL/OMX and CUDA/NPP filters are not bundled.
+- Publish the verified multi-platform image to this repository's GHCR package, gated on authentication/media/restart smoke checks and high/critical vulnerability scans.
+- Pin workflow actions, generate audit/SBOM artifacts, and add weekly dependency updates and OS rebuilds.
+- Document Facebook's manual RTMPS connector limitations versus Graph/Live Video API: fixed ingest host, externally configured backup streams, missing API lifecycle, and encoder requirements.
+
 ## 2.12.0
 
 ### UI v1.13.0 > v1.14.0

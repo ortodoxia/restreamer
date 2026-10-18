@@ -1,9 +1,9 @@
 <h1 align="center">Restreamer</h1>
 <h3 align="center">A really nice and free alternative for handling live streams.</h3>
 <p align="center">
-<a href="https://github.com/datarhei/restreamer/blob/2.x/LICENSE" target="_blank"><img src="https://img.shields.io/github/license/datarhei/restreamer" alt="License" /></a>
-<a href="https://github.com/datarhei/restreamer/releases" target="_blank"><img src="https://img.shields.io/github/v/release/datarhei/restreamer?include_prereleases" alt="License" /></a>
-<a href="https://hub.docker.com/r/datarhei/restreamer" target="_blank"><img src="https://img.shields.io/docker/pulls/datarhei/restreamer" alt="Docker pulls" /></a>
+<a href="https://github.com/ortodoxia/restreamer/blob/2.x/LICENSE" target="_blank"><img src="https://img.shields.io/github/license/ortodoxia/restreamer" alt="License" /></a>
+<a href="https://github.com/ortodoxia/restreamer/actions/workflows/build_bundle.yaml" target="_blank"><img src="https://github.com/ortodoxia/restreamer/actions/workflows/build_bundle.yaml/badge.svg" alt="Build and publish" /></a>
+<a href="https://github.com/ortodoxia/restreamer/pkgs/container/restreamer" target="_blank">GitHub Container Registry</a>
 <a href="https://docs.datarhei.com/restreamer/getting-started/quick-start" target="_blank"><img src="https://img.shields.io/badge/documentation-get%20started-green" alt="Documentation" /></a>
 </p>
 <p align="center"><a href="https://demo.datarhei.com/ui" target="_blank">Try live demo</a><br />
@@ -50,7 +50,7 @@ docker run -d --restart=always --name restreamer \
    -p 8080:8080 -p 8181:8181 \
    -p 1935:1935 -p 1936:1936 \
    -p 6000:6000/udp \
-   datarhei/restreamer:latest
+   ghcr.io/ortodoxia/restreamer:latest
 ```
 
 *`--privileged` just for local devices like usb cameras.*    
@@ -64,21 +64,21 @@ docker run -d --restart=always --name restreamer \
    -p 8080:8080 -p 8181:8181 \
    -p 1935:1935 -p 1936:1936 \
    -p 6000:6000/udp \
-   datarhei/restreamer:rpi-latest
+   ghcr.io/ortodoxia/restreamer:latest
 ```
 
 *`--privileged` just for local devices like usb cameras.*    
 *Try `--security-opt seccomp=unconfined` if no network source can be reached.*
 
-### AMD64 Nvidia Cuda:
+### AMD64 Nvidia NVENC/CUVID:
 ```sh
 docker run -d --restart=always --name restreamer \
    -v /opt/restreamer/config:/core/config -v /opt/restreamer/data:/core/data \
-   --runtime=nvidia --privileged \
+   --gpus all \
    -p 8080:8080 -p 8181:8181 \
    -p 1935:1935 -p 1936:1936 \
    -p 6000:6000/udp \
-   datarhei/restreamer:cuda-latest
+   ghcr.io/ortodoxia/restreamer:latest
 ```
 
 *`--privileged` just for local devices like usb cameras.*    
@@ -88,17 +88,22 @@ docker run -d --restart=always --name restreamer \
 ```sh
 docker run -d --restart=always --name restreamer \
    -v /opt/restreamer/config:/core/config -v /opt/restreamer/data:/core/data \
-   -v /dev/dri:/dev/dri --privileged \
+   --device /dev/dri:/dev/dri \
    -p 8080:8080 -p 8181:8181 \
    -p 1935:1935 -p 1936:1936 \
    -p 6000:6000/udp \
-   datarhei/restreamer:vaapi-latest
+   ghcr.io/ortodoxia/restreamer:latest
 ```
 
 *`--privileged` just for local devices like usb cameras.*    
 *Try `--security-opt seccomp=unconfined` if no network source can be reached.*
 
 *For external access (http/s, rtmp/s, srt), port forwarding from your Internet-Router to the Restreamer's internal IP address may need to be set up.*
+
+This fork publishes one multi-platform image for AMD64, ARM64, and ARMv7; the old `rpi-`, `cuda-`, and `vaapi-` tags are not published. Raspberry Pi uses V4L2 M2M rather than legacy MMAL/OMX. Nvidia requires the NVIDIA Container Toolkit and Linux driver 530.41.03 or newer; CUDA/NPP filter libraries are not bundled. Hardware encoding must be verified on the target machine.
+
+Back up both persistent volumes before replacing an existing image. FFmpeg stays on the compatible 6.1 branch, patched to 6.1.6. FDK-AAC is excluded because it makes the GPL FFmpeg binary unredistributable; use native `aac` for any existing process configured with `libfdk_aac`.
+
 
 ## Documentation
 
@@ -111,37 +116,39 @@ Documentation is available on [docs.datarhei.com/restreamer](https://docs.datarh
 
 ## Development
 
-### Create a custom image (bundle):
+### Build the patched image
 
-#### [Restreamer FFmpeg](https://github.com/datarhei/ffmpeg):
-```
-$ git clone github.com/datarhei/ffmpeg
-$ cd ffmpeg
-$ docker build -f Dockerfile.alpine -t myffmpeg .
-```
-
-#### [Restreamer backend](https://github.com/datarhei/core) (Golang):
-
-```
-$ git clone github.com/datarhei/core
-$ cd core
-$ docker build -t mycore .
+```sh
+git clone https://github.com/ortodoxia/restreamer.git
+cd restreamer
+docker buildx build --load -t restreamer:local .
+python3 build/smoke.py restreamer:local
+docker run --rm -p 8080:8080 restreamer:local
 ```
 
-#### [Restreamer interface](https://github.com/datarhei/restreamer-ui) (React):
-```
-$ git clone github.com/datarhei/restreamer-ui
-$ cd restreamer-ui
-$ docker build -t myrsui .
-```
+The Dockerfile builds pinned upstream Core and UI source with the dependency locks and compatibility patches in `build/core` and `build/ui`. It uses Go 1.26.9, Node 24, Vite instead of Create React App, and a supported Alpine 3.23 runtime. Source downloads are SHA-256 checked; builder/base images are digest-pinned. Upstream's outdated Go vendor directory is not used. FFmpeg 6.1.6 retains datarhei's progress and HLS patches and uses package-managed codec libraries.
 
-#### Restreamer bundle:
-```
-$ git clone github.com/datarhei/restreamer
-$ cd restreamer
-$ docker build --build-arg FFMPEG_IMAGE=myffmpeg --build-arg CORE_IMAGE=mycore --build-arg RESTREAMER_UI_IMAGE=myrsui -t myrestreamer .
-$ docker run -it --rm -p 8080:8080 myrestreamer
-```
+### Publish to GHCR
+
+Push to `2.x`, push a `v*` tag, or dispatch **Build and publish patched Restreamer** on `2.x`. The weekly schedule rebuilds OS packages and audits the image. Pull requests build and verify without publishing. No Docker Hub credentials are required: publishing uses `GITHUB_TOKEN` with job-scoped `packages: write`.
+
+Each architecture must pass a real container smoke run and Trivy's high/critical vulnerability gate for the image and Go/npm locks (including build tools). The smoke covers authentication, token refresh separation, UI assets, H.264/AAC HLS output, progress, and persisted stream restart. Only those exact verified image artifacts are pushed; the final manifest receives `latest`, `sha-<full-commit>`, and release tags. Audit reports and CycloneDX SBOMs are attached as workflow artifacts. Dependabot checks Actions, base images, Go, and npm weekly.
+
+After the first successful publish, set the GHCR package visibility to **Public** for anonymous pulls, or authenticate with a token that has `read:packages`. GitHub organization package/Actions policies must allow publication. For production, deploy the image by digest rather than a mutable tag.
+
+### Dependency maintenance limits
+
+The legacy `@mui/styles` JSS layer is retained to avoid an unrelated visual rewrite; migrating it is separate from security patching. Lingui 4's build-time `lodash.get` dependency is still deprecated. A module-level OpenPGP advisory can appear against `golang.org/x/crypto`; `govulncheck` found no affected imported package or called symbol in the patched build. Neither this nor a clean vulnerability scan is a full application security audit.
+
+### Facebook connector scope
+
+`src/views/Publication/Services/Facebook.js` in the pinned UI is a manual RTMPS publisher, not a Facebook Graph API client. It accepts primary/backup stream keys, uses a fixed `live-api-s.facebook.com` ingest host, and requires H.264/AAC in FLV. Create/manage the broadcast in Facebook Live Producer; the channel's local title and description are not sent to Facebook.
+
+Compared with Meta's [Live Video API](https://developers.facebook.com/documentation/live-video-api), it has no OAuth/Page selection, `live_videos` creation, scheduling/preview lifecycle, remote broadcast status/errors, token renewal, crossposting, or audience interactions. Its backup checkbox starts a second local output but does not enable Facebook backup ingest; that must already be configured in Live Producer or through `enable_backup_ingest=true` / `input_streams`. See Meta's [backup guide](https://developers.facebook.com/documentation/live-video-api/backup_stream).
+
+Meta returns complete primary/backup RTMPS URLs and these can have different hosts. The connector cannot accept those URLs directly; use the generic RTMP publication service when an ingest URL differs from its fixed host. Do not paste a full RTMPS URL into the stream-key field. Keys are shown as ordinary text, so avoid screenshots or sharing configurations containing them.
+
+The connector filters codecs/protocols but does not enforce Meta's [encoding settings](https://developers.facebook.com/documentation/live-video-api/reference): audio plus video, a recommended 2-second GOP (maximum 4), H.264 level/resolution/frame-rate limits, AAC-LC stereo at 44.1/48 kHz, and the 8-hour broadcast limit. Configure the encoding profile accordingly; matching H.264/AAC alone is insufficient. A full API integration needs a reviewed Meta app, appropriate User/Page permissions, and secure server-side token handling. This audit did not call authenticated Facebook APIs or publish a live broadcast.
 
 ### To add/fix translations in the [Restreamer interface](https://github.com/datarhei/restreamer-ui):
 
@@ -156,6 +163,8 @@ For general help using Restreamer, please refer to the official [documentation](
 
 ## License
 See the [LICENSE](./LICENSE) file for licensing information.
+
+The container also contains FFmpeg under GPL-3.0-or-later. Its source archive, datarhei patches, local compatibility patch, codec headers, and build recipe are included in `/usr/share/restreamer/sources`; license notices are in `/usr/share/licenses`. Codec libraries come from Alpine packages. Preserve applicable notices and corresponding-source obligations when redistributing the image.
 
 ## Business inquiries
 **We provide support for commercial requirements with professional support, agile software development, and consulting.** If you have a commercial request, be it a bug or a feature enhancement, please contact us directly at support@datarhei.com.

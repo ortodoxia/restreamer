@@ -1,0 +1,6 @@
+.git
+.github
+**/node_modules
+readme.png
+readme-promo.gif
+**/__pycache__

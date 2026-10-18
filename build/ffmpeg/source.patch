@@ -1,0 +1,53 @@
+--- a/libavdevice/v4l2.c
++++ b/libavdevice/v4l2.c
+@@ -31,6 +31,7 @@
+  */
+ 
+ #include <stdatomic.h>
++#include <stdarg.h>
+ 
+ #include "libavutil/avassert.h"
+ #include "libavutil/avstring.h"
+@@ -49,6 +50,25 @@
+ 
+ #if CONFIG_LIBV4L2
+ #include <libv4l2.h>
++
++/* libv4l2 uses an unsigned long request even on POSIX-ioctl platforms. */
++#if HAVE_POSIX_IOCTL
++static int libv4l2_ioctl(int fd, int request, ...)
++#else
++static int libv4l2_ioctl(int fd, unsigned long request, ...)
++#endif
++{
++    va_list args;
++    void *arg;
++    va_start(args, request);
++    arg = va_arg(args, void *);
++    va_end(args);
++#if HAVE_POSIX_IOCTL
++    return v4l2_ioctl(fd, (unsigned long)(unsigned int)request, arg);
++#else
++    return v4l2_ioctl(fd, request, arg);
++#endif
++}
+ #endif
+ 
+ static const int desired_video_buffers = 256;
+@@ -134,7 +154,7 @@
+     s->open_f   = prefix ## open;       \
+     s->close_f  = prefix ## close;      \
+     s->dup_f    = prefix ## dup;        \
+-    s->ioctl_f  = prefix ## ioctl;      \
++    s->ioctl_f  = ioctl;                \
+     s->read_f   = prefix ## read;       \
+     s->mmap_f   = prefix ## mmap;       \
+     s->munmap_f = prefix ## munmap;     \
+@@ -143,6 +163,7 @@
+     if (s->use_libv4l2) {
+ #if CONFIG_LIBV4L2
+         SET_WRAPPERS(v4l2_);
++        s->ioctl_f = libv4l2_ioctl;
+ #else
+         av_log(ctx, AV_LOG_ERROR, "libavdevice is not built with libv4l2 support.\n");
+         return AVERROR(EINVAL);

@@ -42,7 +42,14 @@ RUN tar -xJf /tmp/ffmpeg.tar.xz --strip-components=1 && \
     patch -p1 < /tmp/ffmpeg-source.patch && \
     mkdir /nv-headers && tar -xzf /tmp/nv-headers.tar.gz -C /nv-headers --strip-components=1 && \
     make -C /nv-headers PREFIX=/usr install
-RUN ./configure --prefix=/usr --extra-version=ortodoxia --enable-gpl --enable-version3 \
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+      amd64) arch=x86_64 ;; \
+      arm64) arch=aarch64 ;; \
+      arm) arch=arm ;; \
+      *) echo "Unsupported FFmpeg target architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac && \
+    ./configure --arch="$arch" --prefix=/usr --extra-version=ortodoxia --enable-gpl --enable-version3 \
     --enable-openssl --enable-libxml2 --enable-libv4l2 --enable-vaapi \
     --enable-v4l2_m2m --enable-libfreetype --enable-libharfbuzz --enable-alsa \
     --enable-libsrt --enable-libx264 --enable-libx265 --enable-libvpx \

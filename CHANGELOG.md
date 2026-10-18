@@ -8,6 +8,7 @@
 - Exclude nonredistributable FDK-AAC; native AAC remains available. Legacy Raspberry Pi MMAL/OMX and CUDA/NPP filters are not bundled.
 - Publish the verified multi-platform image to this repository's GHCR package, gated on authentication/media/restart smoke checks and high/critical vulnerability scans.
 - Pin workflow actions, generate audit/SBOM artifacts, and add weekly dependency updates and OS rebuilds.
+- Select FFmpeg's build architecture explicitly so ARMv7 builds on ARM64 runners use the correct assembly; update Docker/artifact actions to Node 24 releases.
 - Document Facebook's manual RTMPS connector limitations versus Graph/Live Video API: fixed ingest host, externally configured backup streams, missing API lifecycle, and encoder requirements.
 
 ## 2.12.0
